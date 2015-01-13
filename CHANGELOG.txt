@@ -1,3 +1,14 @@
+Quisk Version 3.6.20 December 2014
+==================================
+Thanks to Graeme, ZL2APV, quisk now changes both channels of a control when using mixer_settings[].
+He reports that setting boolean values does not work, but it works on my machine.  More testing
+is needed.
+
+The new config file dictionary bandTransverterOffset[] gives the offset in Hertz for bands that are
+used with a transverter; for example 144000000 - 28000000 for a two meter transverter.  This
+currently works for HiQSDR, SoftRock and SdrIQ.  I also changed the graph X axis code so gigahertz
+frequency labels are not too wide.
+
 Quisk Version 3.6.19 October 2014
 =================================
 Mario, DL3LSM, contributed changes for MacOS support.  Thanks!

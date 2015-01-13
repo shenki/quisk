@@ -774,6 +774,15 @@ bandTime = [
 bandLabels = ['Audio', '160', '80', ('60',) * 5, '40', '30', '20', '17',
 	'15', '12', '10', ('Time',) * len(bandTime)]
 
+# If you use a transverter, you need to tune your hardware to a frequency lower than
+# the frequency displayed by Quisk.  For example, if you have a 2 meter transverter,
+# you may need to tune your hardware from 28 to 30 MHz to receive 144 to 146 MHz.
+# Enter the transverter offset in Hertz in this dictionary.  For this to work, your
+# hardware must support it.  Currently, the HiQSDR, SDR-IQ and SoftRock are supported.
+bandTransverterOffset = {
+#    '2': 144000000 - 28000000
+}
+
 # If you get your I/Q samples from a sound card, you will need to correct the
 # amplitude and phase for inaccuracies in the analog hardware.  The data is
 # entered using the controls from the "Rx Phase" button on the config screen.

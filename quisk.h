@@ -145,6 +145,7 @@ extern PyObject * quisk_sound_errors(PyObject *, PyObject *);
 extern PyObject * quisk_set_file_record(PyObject *, PyObject *);
 extern PyObject * quisk_set_tx_audio(PyObject *, PyObject *, PyObject *);
 extern PyObject * quisk_is_vox(PyObject *, PyObject *);
+extern PyObject * quisk_set_udp_tx_correct(PyObject *, PyObject *);
 
 // These function pointers are the Start/Stop/Read interface for
 // the SDR-IQ and any other C-language extension modules that return

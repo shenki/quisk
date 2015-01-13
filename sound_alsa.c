@@ -877,6 +877,7 @@ void quisk_mixer_set(char * card_name, int numid, PyObject * value, char * err_m
 	unsigned int idx;
 	long imin, imax, tmp;
 	snd_ctl_elem_type_t type;
+	unsigned int count;
 
 	snd_ctl_elem_info_alloca(&info);
 	snd_ctl_elem_id_alloca(&id);
@@ -912,61 +913,63 @@ void quisk_mixer_set(char * card_name, int numid, PyObject * value, char * err_m
 	snd_ctl_elem_info_get_id(info, id);
 	type = snd_ctl_elem_info_get_type(info);
 	snd_ctl_elem_value_set_id(control, id);
+	count = snd_ctl_elem_info_get_count(info);
 	
-	idx = 0;
-	switch (type) {
-	case SND_CTL_ELEM_TYPE_BOOLEAN:
-		if (PyObject_IsTrue(value))
-			snd_ctl_elem_value_set_boolean(control, idx, 1);
-		else
-			snd_ctl_elem_value_set_boolean(control, idx, 0);
-		break;
-	case SND_CTL_ELEM_TYPE_INTEGER:
-		imin = snd_ctl_elem_info_get_min(info);
-		imax = snd_ctl_elem_info_get_max(info);
-		if (PyFloat_CheckExact(value)) {
-			tmp = (long)(imin + (imax - imin) * PyFloat_AsDouble(value) + 0.4);
-			snd_ctl_elem_value_set_integer(control, idx, tmp);
+	for (idx = 0; idx < count; idx++) {
+		switch (type) {
+		case SND_CTL_ELEM_TYPE_BOOLEAN:
+			if (PyObject_IsTrue(value))
+				snd_ctl_elem_value_set_boolean(control, idx, 1);
+			else
+				snd_ctl_elem_value_set_boolean(control, idx, 0);
+			break;
+		case SND_CTL_ELEM_TYPE_INTEGER:
+			imin = snd_ctl_elem_info_get_min(info);
+			imax = snd_ctl_elem_info_get_max(info);
+			if (PyFloat_CheckExact(value)) {
+				tmp = (long)(imin + (imax - imin) * PyFloat_AsDouble(value) + 0.4);
+				snd_ctl_elem_value_set_integer(control, idx, tmp);
+			}
+			else if(PyInt_Check(value)) {
+				tmp = PyInt_AsLong(value);
+				snd_ctl_elem_value_set_integer(control, idx, tmp);
+			}
+			else {
+				snprintf (err_msg, err_size, "Control %s id %d has bad value\n", card_name, numid);
+			}
+			break;
+		case SND_CTL_ELEM_TYPE_INTEGER64:
+			imin = snd_ctl_elem_info_get_min64(info);
+			imax = snd_ctl_elem_info_get_max64(info);
+			if (PyFloat_CheckExact(value)) {
+				tmp = (long)(imin + (imax - imin) * PyFloat_AsDouble(value) + 0.4);
+				snd_ctl_elem_value_set_integer64(control, idx, tmp);
+			}
+			else if(PyInt_Check(value)) {
+				tmp = PyInt_AsLong(value);
+				snd_ctl_elem_value_set_integer64(control, idx, tmp);
+			}
+			else {
+				snprintf (err_msg, err_size, "Control %s id %d has bad value\n", card_name, numid);
+			}
+			break;
+		case SND_CTL_ELEM_TYPE_ENUMERATED:
+			if(PyInt_Check(value)) {
+				tmp = PyInt_AsLong(value);
+				snd_ctl_elem_value_set_enumerated(control, idx, (unsigned int)tmp);
+			}
+			else {
+				snprintf (err_msg, err_size, "Control %s id %d has bad value\n", card_name, numid);
+			}
+			break;
+		default:
+			snprintf (err_msg, err_size, "Control %s element has unknown type\n", card_name);
+			break;
 		}
-		else if(PyInt_Check(value)) {
-			tmp = PyInt_AsLong(value);
-			snd_ctl_elem_value_set_integer(control, idx, tmp);
+		if ((err = snd_ctl_elem_write(handle, control)) < 0) {
+			snprintf (err_msg, err_size, "Control %s element write error: %s\n", card_name, snd_strerror(err));
+			return;
 		}
-		else {
-			snprintf (err_msg, err_size, "Control %s id %d has bad value\n", card_name, numid);
-		}
-		break;
-	case SND_CTL_ELEM_TYPE_INTEGER64:
-		imin = snd_ctl_elem_info_get_min64(info);
-		imax = snd_ctl_elem_info_get_max64(info);
-		if (PyFloat_CheckExact(value)) {
-			tmp = (long)(imin + (imax - imin) * PyFloat_AsDouble(value) + 0.4);
-			snd_ctl_elem_value_set_integer64(control, idx, tmp);
-		}
-		else if(PyInt_Check(value)) {
-			tmp = PyInt_AsLong(value);
-			snd_ctl_elem_value_set_integer64(control, idx, tmp);
-		}
-		else {
-			snprintf (err_msg, err_size, "Control %s id %d has bad value\n", card_name, numid);
-		}
-		break;
-	case SND_CTL_ELEM_TYPE_ENUMERATED:
-		if(PyInt_Check(value)) {
-			tmp = PyInt_AsLong(value);
-			snd_ctl_elem_value_set_enumerated(control, idx, (unsigned int)tmp);
-		}
-		else {
-			snprintf (err_msg, err_size, "Control %s id %d has bad value\n", card_name, numid);
-		}
-		break;
-	default:
-		snprintf (err_msg, err_size, "Control %s element has unknown type\n", card_name);
-		break;
-	}
-	if ((err = snd_ctl_elem_write(handle, control)) < 0) {
-		snprintf (err_msg, err_size, "Control %s element write error: %s\n", card_name, snd_strerror(err));
-		return;
 	}
 	snd_ctl_close(handle);
 	return;

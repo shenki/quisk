@@ -108,11 +108,10 @@ class Hardware(BaseHardware):
   def ChangeFrequency(self, tx_freq, vfo_freq, source='', band='', event=None):
     if vfo_freq != self.vfo_frequency:
       self.vfo_frequency = vfo_freq
-      self.rx_phase = int(float(vfo_freq) / self.conf.rx_udp_clock * 2.0**32 + 0.5) & 0xFFFFFFFF
+      self.rx_phase = int(float(vfo_freq - self.transverter_offset) / self.conf.rx_udp_clock * 2.0**32 + 0.5) & 0xFFFFFFFF
     if tx_freq and tx_freq > 0:
       self.tx_frequency = tx_freq
-      tx = tx_freq
-      self.tx_phase = int(float(tx) / self.conf.rx_udp_clock * 2.0**32 + 0.5) & 0xFFFFFFFF
+      self.tx_phase = int(float(tx_freq - self.transverter_offset) / self.conf.rx_udp_clock * 2.0**32 + 0.5) & 0xFFFFFFFF
     self.NewUdpStatus()
     return tx_freq, vfo_freq
   def ChangeMode(self, mode):
@@ -132,6 +131,7 @@ class Hardware(BaseHardware):
     self.SetTxLevel()
   def ChangeBand(self, band):
     # band is a string: "60", "40", "WWV", etc.
+    BaseHardware.ChangeBand(self, band)
     self.band = band
     self.HiQSDR_Connector_X1 &= ~0x0F	# Mask in the last four bits
     self.HiQSDR_Connector_X1 |= self.conf.HiQSDR_BandDict.get(band, 0) & 0x0F

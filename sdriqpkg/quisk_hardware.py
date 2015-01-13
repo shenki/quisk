@@ -44,10 +44,11 @@ class Hardware(BaseHardware):
       print ('Unknown RfGain')
   def ChangeFrequency(self, tune, vfo, source='', band='', event=None):
     if vfo:
-      sdriq.freq_sdriq(vfo)
+      sdriq.freq_sdriq(vfo - self.transverter_offset)
     return tune, vfo
   def ChangeBand(self, band):
     # band is a string: "60", "40", "WWV", etc.
+    BaseHardware.ChangeBand(self, band)
     btn = self.application.BtnRfGain
     if btn:
       if band in ('160', '80', '60', '40'):

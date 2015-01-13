@@ -1367,56 +1367,33 @@ class GraphScreen(wx.Window):
       c = color
     # check the width of the frequency label versus frequency span
     df = charx * sample_rate // self.data_width
-    if df <    2000:
-      tfreq =  2000		# tick frequency for labels
-      stick =   100		# stick: small tick in Hertz
-      mtick =   500		# mtick: medium tick
-      ltick =  1000		# ltick: large tick
-    elif df <  5000:
-      tfreq =  5000		# tick frequency for labels
-      stick =   500
-      mtick =  1000
-      ltick =  5000
-    elif df < 10000:
-      tfreq = 10000
-      stick =  1000
-      mtick =  5000
-      ltick = 10000
-    elif df < 20000:
-      tfreq = 20000
-      stick =  1000
-      mtick =  5000
-      ltick = 10000
-    elif df < 50000:
-      tfreq = 50000
-      stick =  5000
-      mtick = 10000
-      ltick = 50000
-    elif df < 100000:
-      tfreq = 100000
-      stick =  10000
-      mtick =  50000
-      ltick = 100000
-    elif df < 200000:
-      tfreq = 200000
-      stick =  10000
-      mtick =  50000
-      ltick = 100000
-    elif df < 500000:
-      tfreq = 500000
-      stick =  50000
-      mtick = 100000
-      ltick = 500000
-    elif df < 1000000:
-      tfreq = 1000000
-      stick =  100000
-      mtick =  500000
-      ltick = 1000000
-    else:
-      tfreq = 2000000
-      stick =  100000
-      mtick =  500000
-      ltick = 1000000
+    if VFO >= 10E9:     # Leave room for big labels
+      df *= 1.33
+    elif VFO >= 1E9:
+      df *= 1.17
+    # tfreq: tick frequency for labels in Hertz
+    # stick: small tick in Hertz
+    # mtick: medium tick
+    # ltick: large tick
+    s2 = 1000
+    tfreq = None
+    while tfreq is None:
+      if df < s2:
+        tfreq = s2
+        stick = s2 / 10
+        mtick = s2 / 2
+        ltick = tfreq
+      elif df < s2 * 2:
+        tfreq = s2 * 2
+        stick = s2 / 10
+        mtick = s2 / 2
+        ltick = s2
+      elif df < s2 * 5:
+        tfreq = s2 * 5
+        stick = s2 / 2
+        mtick = s2
+        ltick = tfreq
+      s2 *= 10
     # Draw the X axis ticks and frequency in kHz
     dc.SetPen(self.pen_tick)
     freq1 = VFO - sample_rate // 2
@@ -1426,13 +1403,13 @@ class GraphScreen(wx.Window):
     for f in range (freq1, freq2, stick):
       x = self.x0 + int(float(f - VFO) / sample_rate * self.data_width)
       if self.originX <= x <= x3:
-        if f % ltick is 0:		# large tick
+        if f % ltick == 0:		# large tick
           dc.DrawLine(x, originY, x, originY + tick2)
-        elif f % mtick is 0:	# medium tick
+        elif f % mtick == 0:	# medium tick
           dc.DrawLine(x, originY, x, originY + tick1)
         else:					# small tick
           dc.DrawLine(x, originY, x, originY + tick0)
-        if f % tfreq is 0:		# place frequency label
+        if f % tfreq == 0:		# place frequency label
           t = str(f//1000)
           w, h = dc.GetTextExtent(t)
           dc.DrawText(t, x - w // 2, originY + tick2)
@@ -1853,6 +1830,7 @@ class WaterfallDisplay(wx.Window):
       l = min(l, 255)
       row = row + "%c%c%c" % (chr(self.red[l]), chr(self.green[l]), chr(self.blue[l]))
     #T('graph string')
+    # Perhaps use 4-byte pixels and BitmapFromBufferRGBA()
     bmp = wx.BitmapFromBuffer(len(row) // 3, 1, row)
     bmp.x_origin = int(float(self.VFO) / sample_rate * self.data_width + 0.5)
     self.bitmaps.insert(0, bmp)
@@ -3769,8 +3747,8 @@ The new code supports multiple corrections per band.""")
       vfo, tune, mode = conf.bandTime[btn.index]
     self.OnBtnMode(None, mode)
     self.txFreq = self.VFO = -1		# demand change
-    self.ChangeHwFrequency(tune, vfo, 'BtnBand', band=band)
     self.ChangeBand(band)
+    self.ChangeHwFrequency(tune, vfo, 'BtnBand', band=band)
   def BandFromFreq(self, frequency):	# Change to a new band based on the frequency
     try:
       f1, f2 = conf.BandEdge[self.lastBand]

@@ -1963,7 +1963,7 @@ static int read_rx_udp17(complex double * cSamples0)	// Read samples from UDP
 	ssize_t bytes;
 	unsigned char buf[1500];	// Maximum Ethernet is 1500 bytes.
 	static unsigned char seq0;	// must be 8 bits
-	int i, n, nSamples0, xr, xi, index, want_samples;
+	int i, n, nSamples0, xr, xi, index, want_samples, key_down;
 	complex double sample;
 	unsigned char * ptxr, * ptxi;
 	struct timeval tm_wait;
@@ -2007,6 +2007,7 @@ static int read_rx_udp17(complex double * cSamples0)	// Read samples from UDP
 	}
 	nSamples0 = 0;
 	want_samples = (int)(quisk_sound_state.data_poll_usec * 1e-6 * quisk_sound_state.sample_rate + 0.5);
+	key_down = quisk_is_key_down();
 	while (nSamples0 < want_samples) {		// read several UDP blocks
 		tm_wait.tv_sec = 0;
 		tm_wait.tv_usec = 100000; // Linux seems to have problems with very small time intervals
@@ -2047,7 +2048,7 @@ static int read_rx_udp17(complex double * cSamples0)	// Read samples from UDP
 			quisk_sound_state.read_error++;
 		}
 		seq0 = buf[0] + 1;		// Next expected sequence number
-		quisk_set_key_down(buf[1] & 0x01);	// bit zero is key state
+		//quisk_set_key_down(buf[1] & 0x01);	// bit zero is key state
 		if (buf[1] & 0x02)					// bit one is ADC overrange
 			quisk_sound_state.overrange++;
 		index = 2;
@@ -2103,7 +2104,7 @@ static int read_rx_udp17(complex double * cSamples0)	// Read samples from UDP
 						printf("Bad block_number %d\n", block_number);
 				}
 				ptFFT->samples[ptFFT->index] = sample;
-				if (++(ptFFT->index) >= fft_size) {		// check sample count
+				if ((isFDX || ! key_down) && ++(ptFFT->index) >= fft_size) {		// check sample count
 					n = fft_data_index + 1;				// next FFT data location
 					if (n >= FFT_ARRAY_SIZE)
 						n = 0;
@@ -2126,7 +2127,7 @@ static int read_rx_udp17(complex double * cSamples0)	// Read samples from UDP
 			}
 		}
 	}
-	if (quisk_is_key_down()) {
+	if (key_down) {
 		dc_key_delay = 0;
 		dc_sum = 0;
 		dc_count = 0;
@@ -2865,6 +2866,7 @@ static void measure_freq(complex double * cSamples, int nSamples, int srate)
 	c3 = 1.36 * (fft_average[ipeak+1] - fft_average[ipeak - 1]) / (fft_average[ipeak-1] + fft_average[ipeak] + fft_average[ipeak+1]);
 	freq = srate * (2 * (ipeak + c3) - fft_size) / 2 / fft_size;
 	freq += rx_tune_freq;
+	//printf("freq %.0f rx_tune_freq %d vfo_screen %d vfo_audio %d\n", freq, rx_tune_freq, vfo_screen, vfo_audio);
 	// printf("\n%5d %.4lf %.2lf k=%d\n", ipeak, c3, freq, k);
 	measured_frequency = freq;
 	//for (i = ipeak - 10; i <= ipeak + 10 && i >= 0 && i < fft_size; i++)
@@ -3113,6 +3115,7 @@ static PyMethodDef QuiskMethods[] = {
 	{"record_app", record_app, METH_VARARGS, "Save the App instance."},
 	{"record_graph", record_graph, METH_VARARGS, "Record graph parameters."},
 	{"set_ampl_phase", quisk_set_ampl_phase, METH_VARARGS, "Set the sound card amplitude and phase corrections."},
+	{"set_udp_tx_correct", quisk_set_udp_tx_correct, METH_VARARGS, "Set the UDP transmit corrections."},
 	{"set_agc", set_agc, METH_VARARGS, "Set the AGC parameters."},
 	{"set_squelch", set_squelch, METH_VARARGS, "Set the squelch parameter."},
 	{"get_squelch", get_squelch, METH_VARARGS, "Get the squelch state, 0 or 1."},

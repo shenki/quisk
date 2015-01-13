@@ -26,6 +26,7 @@ class Hardware:
     self.rf_gain_labels = ()		# Do not add the Rf Gain button
     self.correct_smeter = conf.correct_smeter		# Default correction for S-meter
     self.use_sidetone = 0			# Don't show the sidetone volume control
+    self.transverter_offset = 0		# Calculate the transverter offset in Hertz for each band
   def open(self):			# Called once to open the Hardware
     # Return an informative message for the config screen
     t = "Capture from sound card %s." % self.conf.name_of_sound_capt
@@ -66,7 +67,10 @@ class Hardware:
     pass
   def ChangeBand(self, band):
     # band is a string: "60", "40", "WWV", etc.
-    pass
+    try:
+      self.transverter_offset = self.conf.bandTransverterOffset[band]
+    except:
+      self.transverter_offset = 0
   def OnBtnFDX(self, is_fdx):   # Status of FDX button, 0 or 1
     pass
   def HeartBeat(self):	# Called at about 10 Hz by the main

@@ -53,6 +53,10 @@ static int is_vox = 0;					// Is the VOX level exceeded?
 static int vox_level = CLIP16;			// VOX trigger level as a number 0 to CLIP16
 static int timeVOX = 2000;				// VOX hang time in milliseconds
 
+static int doTxCorrect = 0;				// Corrections for UDP sample transmit
+static double TxCorrectLevel;
+static complex TxCorrectDc;
+
 #define TX_BLOCK_SHORTS		600		// transmit UDP packet with this many shorts (two bytes) (perhaps + 1)
 #define MIC_MAX_HOLD_TIME	400		// Time to hold the maximum mic level on the Status screen in milliseconds
 
@@ -661,6 +665,10 @@ static void transmit_udp(complex double * cSamples, int count)
 		udp_iq[0] = 0;	// should not be necessary
 		return;
 	}
+	if (doTxCorrect) {
+		for (i = 0; i < count; i++)
+			cSamples[i] = cSamples[i] * TxCorrectLevel + TxCorrectDc;
+	}
 	for (i = 0; i < count; i++) {	// transmit samples
 		udp_iq[udp_size++] = (short)creal(cSamples[i]);
 		udp_iq[udp_size++] = (short)cimag(cSamples[i]);
@@ -797,6 +805,12 @@ int quisk_process_microphone(int mic_sample_rate, complex double * cSamples, int
 				count = tx_filter(cSamples, count);		// filter samples
 				transmit_udp(cSamples, count);
 			}
+#if 0
+			else if (quiskSpotLevel == 10) {			// Test zero output for noise
+				count *= interp;
+				transmit_mic_carrier(cSamples, count, 0.0);
+			}
+#endif
 			else {
 				count *= interp;
 				transmit_mic_carrier(cSamples, count, quiskSpotLevel / 1000.0);
@@ -892,6 +906,29 @@ PyObject * quisk_set_tx_audio(PyObject * self, PyObject * args, PyObject * keywd
 		vox_level = (int)(pow(10.0, vlevel / 20.0) * CLIP16);	// Convert dB to 16-bit sample
 	if (clevel != -9999)
 		quisk_mic_clip = pow(10.0, clevel / 20.0);	// Convert dB to factor
+	Py_INCREF (Py_None);
+	return Py_None;
+}
+
+PyObject * quisk_set_udp_tx_correct(PyObject * self, PyObject * args)	// Called from GUI thread
+{
+	double DcI, DcQ;
+
+	if (!PyArg_ParseTuple (args, "dd", &DcI, &DcQ))
+		return NULL;
+	if (DcI == 0 && DcQ == 0){
+		doTxCorrect = 0;
+	}
+	else {
+		doTxCorrect = 1;
+		TxCorrectDc = (DcI + I * DcQ) * CLIP16;
+		DcI = fabs(DcI);
+		DcQ = fabs(DcQ);
+		if (DcI > DcQ)
+			TxCorrectLevel = 1.0 - DcI;
+		else
+			TxCorrectLevel = 1.0 - DcQ;
+	}
 	Py_INCREF (Py_None);
 	return Py_None;
 }

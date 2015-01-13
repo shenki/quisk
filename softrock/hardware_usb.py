@@ -84,9 +84,9 @@ class Hardware(BaseHardware):
   def ChangeFrequency(self, tune, vfo, source='', band='', event=None):
     if self.usb_dev and self.vfo != vfo:
       if self.conf.si570_direct_control:
-        if self.SetFreqByDirect(vfo):
+        if self.SetFreqByDirect(vfo - self.transverter_offset):
           self.vfo = vfo
-      elif self.SetFreqByValue(vfo):
+      elif self.SetFreqByValue(vfo - self.transverter_offset):
          self.vfo = vfo
       if DEBUG:
         print ('Change to', vfo)
@@ -109,7 +109,7 @@ class Hardware(BaseHardware):
       self.OnButtonPTT()
   def ChangeBand(self, band):
     # band is a string: "60", "40", "WWV", etc.
-    pass
+    BaseHardware.ChangeBand(self, band)
   def OnSpot(self, level):
     if self.key_thread:
       self.key_thread.OnSpot(level)
